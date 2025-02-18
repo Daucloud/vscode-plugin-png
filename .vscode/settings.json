@@ -8,5 +8,10 @@
 	},
 	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
 	"typescript.tsc.autoDetect": "off",
-	"python.pythonPath": "/opt/homebrew/Caskroom/miniconda/base/bin/python"
+	"python.pythonPath": "/opt/homebrew/Caskroom/miniconda/base/bin/python",
+	"python.testing.pytestArgs": [
+		"src"
+	],
+	"python.testing.unittestEnabled": false,
+	"python.testing.pytestEnabled": true
 }
