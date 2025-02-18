@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- 背景圆形 -->
+  <circle cx="64" cy="64" r="60" fill="#2C2C32"/>
+  
+  <!-- 图标主体 - 简化的PNG图像表示 -->
+  <rect x="34" y="34" width="60" height="60" rx="4" fill="#ffffff" opacity="0.9"/>
+  
+  <!-- 透明效果表示 - 棋盘格图案的一部分 -->
+  <rect x="34" y="64" width="30" height="30" fill="#eeeeee"/>
+  <rect x="64" y="34" width="30" height="30" fill="#eeeeee"/>
+  
+  <!-- 放大镜表示缩放功能 -->
+  <circle cx="78" cy="78" r="16" fill="none" stroke="#007ACC" stroke-width="6"/>
+  <line x1="88" y1="88" x2="98" y2="98" stroke="#007ACC" stroke-width="6" stroke-linecap="round"/>
+</svg>

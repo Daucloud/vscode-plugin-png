@@ -1,71 +1,76 @@
-# plugin-png README
+# Dark Theme Image View
+![](./images/icon.png)
 
-This is the README for your extension "plugin-png". After writing up a brief description, we recommend including the following sections.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
+A Visual Studio Code extension that provides enhanced image viewing capabilities with special support for dark theme environments.
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+## 👀 preview
+<p align="center">
+    <img src="./images/before.jpg" width="45%" alt="Dark theme without extension" />
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <img src="./images/after.jpg" width="45%" alt="Dark theme with extension" />
+</p>
+<p align="center">
+    <em>Left: Dark theme without extension | Right: Dark theme with extension enabled</em>
+</p>
 
-For example if there is an image subfolder under your extension project workspace:
+## ✨ Features
 
-\!\[feature X\]\(images/feature-x.png\)
+- 🎨 **Transparent Background Handling**: Automatically converts transparent backgrounds to white in dark theme mode
+- 🖱️ **Interactive Viewing**:
+  - 🔍 Zoom in/out using Ctrl/Cmd + Mouse Wheel
+  - 🎯 Pan image by dragging with mouse
+- 📂 **Supported Formats**: 
+  - PNG files
+  - SVG files
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## 🚀 Usage
 
-## Requirements
+1. Open any PNG or SVG file in VS Code. The image will automatically open in the custom viewer, and In dark theme, transparent backgrounds will be rendered as white.
+2. You may use mouse controls to interact with the image:
+   - 👆 Hold and drag to pan
+   - ⚡ Ctrl/Cmd + scroll to zoom
+3. To switch to a different editor, right-click the file in the Explorer and select "Open With..." from the context menu.
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+## 📋 Requirements
 
-## Extension Settings
+- VS Code 1.74.0 or higher
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+## 💻 Installation
 
-For example:
+1. Install through VS Code Marketplace
+2. Reload VS Code
+3. Open any PNG/SVG file to start using
 
-This extension contributes the following settings:
+## ⚙️ Configuration
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+This extension works out of the box with no additional configuration required.
 
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
+## 📝 Release Notes
 
 ### 1.0.0
 
-Initial release of ...
+- 🎉 Initial release
+- ✅ Support for PNG and SVG files
+- 🎮 Zoom and pan controls
+- 🎨 Auto background conversion for transparent images
 
-### 1.0.1
+## 🤝 Contributing
 
-Fixed issue #.
+Found a bug or have a feature request? Please open an issue on the GitHub repository.
 
-### 1.1.0
+## 📄 License
 
-Added features X, Y, and Z.
+[MIT License](LICENSE)
 
----
+## 🙏 Credits
 
-## Following extension guidelines
+README and icon are generated with the assistance of [Claude AI](https://claude.ai/).
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+## 🔗 Links
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Daucloud.dark-theme-image-view)
+- [GitHub Repository](https://github.com/daucloud/dark-theme-image-view)
+- [Report an Issue](https://github.com/daucloud/dark-theme-image-view/issues)
+- [Changelog](CHANGELOG.md)

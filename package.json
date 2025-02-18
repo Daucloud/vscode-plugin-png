@@ -1,10 +1,25 @@
 {
-  "name": "plugin-png",
-  "displayName": "plugin-png",
-  "description": "make the transparent background for *.png white to fit the dark theme.",
-  "version": "0.0.1",
+  "name": "dark-theme-image-view",
+  "displayName": "Dark Theme Image View",
+  "description": "Make transparent backgrounds white in dark theme for better image visibility",
+  "version": "1.0.0",
+  "license": "MIT",
+  "keywords": [
+    "image",
+    "dark theme",
+    "transparent background",
+    "image view",
+    "png",
+    "svg"
+  ],
+  "publisher": "Daucloud",
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daucloud/dark-theme-image-view"
+  },
   "engines": {
-    "vscode": "^1.97.0"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Other"
@@ -12,19 +27,13 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "extension.handlePng",
-        "title": "handlePng"
-      }
-    ],
     "customEditors": [
       {
-        "viewType": "pngEditor",
-        "displayName": "PNG Editor",
+        "viewType": "darkThemeImageViewEditor",
+        "displayName": "Dark Theme Image View Editor",
         "selector": [
           {
-            "filenamePattern": "*.png"
+            "filenamePattern": "*.{png,svg}"
           }
         ],
         "priority": "default"
@@ -42,7 +51,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
-    "@types/vscode": "^1.97.0",
+    "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
     "@typescript-eslint/parser": "^8.22.0",
     "@vscode/test-cli": "^0.0.10",

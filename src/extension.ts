@@ -1,18 +1,17 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log('PNG Editor is now active');
-	const provider = new PngEditorProvider();
+	console.log('Image Editor is now active');
+	const provider = new ImageEditorProvider();
 	context.subscriptions.push(vscode.window.registerCustomEditorProvider(
-		'pngEditor',
+		'darkThemeImageViewEditor',
 		provider,
 		{ supportsMultipleEditorsPerDocument: false }
 	));
 }
 
-class PngEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.CustomDocument> {
+class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.CustomDocument> {
 	async openCustomDocument(uri: vscode.Uri): Promise<vscode.CustomDocument> {
 		console.log(`Opening document: ${uri.fsPath}`);
 		return { uri, dispose: () => {} };
