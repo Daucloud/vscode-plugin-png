@@ -2,7 +2,7 @@
   "name": "dark-theme-image-view",
   "displayName": "Dark Theme Image View",
   "description": "Make transparent backgrounds white in dark theme for better image visibility",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "keywords": [
     "image",
