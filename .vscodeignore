@@ -1,11 +1,18 @@
 .vscode/**
 .vscode-test/**
 src/**
+out/test/**
+test/**
 .gitignore
 .yarnrc
-vsc-extension-quickstart.md
 **/tsconfig.json
-**/eslint.config.mjs
+**/.eslintrc.json
 **/*.map
 **/*.ts
-**/.vscode-test.*
+
+# 保留必要的 node_modules
+node_modules/**
+!node_modules/sharp/**
+!node_modules/sharp/build/**
+!node_modules/sharp/vendor/**
+!node_modules/sharp/lib/**

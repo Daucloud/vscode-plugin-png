@@ -49,6 +49,10 @@ This extension works out of the box with no additional configuration required.
 
 ## 📝 Release Notes
 
+### 1.0.1
+
+- Optimized extension bundle size using esbuild
+
 ### 1.0.0
 
 - 🎉 Initial release
