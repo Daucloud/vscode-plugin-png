@@ -12,7 +12,7 @@ A Visual Studio Code extension that provides enhanced image viewing capabilities
     <img src="./images/after.jpg" width="45%" alt="Dark theme with extension" />
 </p>
 <p align="center">
-    <em>Left: Dark theme without extension | Right: Dark theme with extension enabled</em>
+    <em>Left: Dark theme without extension</em> | <em>Right: Dark theme with extension enabled</em>
 </p>
 
 ## ✨ Features
@@ -71,6 +71,6 @@ README and icon are generated with the assistance of [Claude AI](https://claude.
 ## 🔗 Links
 
 - [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Daucloud.dark-theme-image-view)
-- [GitHub Repository](https://github.com/daucloud/dark-theme-image-view)
-- [Report an Issue](https://github.com/daucloud/dark-theme-image-view/issues)
+- [GitHub Repository](https://github.com/Daucloud/vscode-plugin-png)
+- [Report an Issue](https://github.com/daucloud/vscode-plugin-png/issues)
 - [Changelog](CHANGELOG.md)
