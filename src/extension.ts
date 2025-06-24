@@ -20,12 +20,7 @@ class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.
 	async resolveCustomEditor(document: vscode.CustomDocument, panel: vscode.WebviewPanel) {
 		const filePath = document.uri.fsPath;
 		
-		// 使用 vscode-resource 协议转换 URI
-		const imageUri = panel.webview.asWebviewUri(vscode.Uri.file(filePath));
-		// 添加版本号防止缓存
-		const versionedUri = `${imageUri}?version=${Date.now()}`;
-
-		// 设置允许的脚本和资源
+		// Set up webview options
 		panel.webview.options = {
 			enableScripts: true,
 			localResourceRoots: [
@@ -33,6 +28,34 @@ class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.
 				vscode.Uri.file(path.join(__dirname, '..')),
 			]
 		};
+
+		// Set up the initial HTML content
+		this.updateWebviewContent(panel, document.uri);
+
+		// Listen for when the panel is disposed
+		// This happens when the user closes the panel or when the panel is closed programmatically
+		panel.onDidDispose(() => {
+			// Clean up resources
+			console.log(`Panel for ${filePath} disposed`);
+		});
+
+		// Listen for when the panel becomes visible
+		panel.onDidChangeViewState(e => {
+			if (e.webviewPanel.visible) {
+				// Force reload the image when the panel becomes visible again
+				this.updateWebviewContent(panel, document.uri);
+			}
+		});
+	}
+
+	// Helper method to update the webview content with the latest image
+	private updateWebviewContent(panel: vscode.WebviewPanel, uri: vscode.Uri) {
+		const filePath = uri.fsPath;
+		
+		// Use vscode-resource protocol to convert URI
+		const imageUri = panel.webview.asWebviewUri(vscode.Uri.file(filePath));
+		// Add version number to prevent caching
+		const versionedUri = `${imageUri}?version=${Date.now()}`;
 
 		panel.webview.html = `
 			<!DOCTYPE html>
@@ -115,12 +138,12 @@ class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.
 						}
 					});
 
-					// 添加缩放状态变量
+					// Add zoom state variables
 					let scale = 1;
 					let isDragging = false;
 					let startX, startY, translateX = 0, translateY = 0;
 
-					// 添加鼠标滚轮缩放
+					// Add mouse wheel zoom
 					canvas.addEventListener('wheel', (e) => {
 						if (e.ctrlKey || e.metaKey) {
 							e.preventDefault();
@@ -131,7 +154,7 @@ class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.
 						}
 					}, { passive: false });
 
-					// 添加拖动功能
+					// Add drag functionality
 					canvas.addEventListener('mousedown', (e) => {
 						isDragging = true;
 						startX = e.clientX - translateX;
@@ -152,7 +175,7 @@ class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.
 						canvas.style.cursor = 'grab';
 					});
 
-					// 更新 canvas 变换
+					// Update canvas transform
 					function updateCanvasTransform() {
 						canvas.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px) scale(' + scale + ')';
 					}
@@ -161,6 +184,8 @@ class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.
 						console.log('Loading image:', filePath);
 						console.log('Theme kind:', themeKind);
 						
+						// Create a new Image object each time to avoid caching issues
+						img = new Image();
 						img.src = filePath;
 						img.onload = () => {
 							console.log('Image loaded, dimensions:', img.width, 'x', img.height);
@@ -175,7 +200,7 @@ class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.
 
 							ctx.drawImage(img, 0, 0);
 
-							// 重置缩放和位置
+							// Reset zoom and position
 							scale = 1;
 							translateX = 0;
 							translateY = 0;
@@ -214,12 +239,12 @@ class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.
 			</html>
 		`;
 
-			// 使用带版本号的 URI 发送消息
-			panel.webview.postMessage({
-				command: 'loadImage',
-				filePath: versionedUri,
-				themeKind: vscode.window.activeColorTheme.kind
-			});
+		// Send message with versioned URI
+		panel.webview.postMessage({
+			command: 'loadImage',
+			filePath: versionedUri,
+			themeKind: vscode.window.activeColorTheme.kind
+		});
 	}
 }
 

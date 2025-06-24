@@ -47,19 +47,6 @@ A Visual Studio Code extension that provides enhanced image viewing capabilities
 
 This extension works out of the box with no additional configuration required.
 
-## 📝 Release Notes
-
-### 1.0.1
-
-- Optimized extension bundle size using esbuild
-
-### 1.0.0
-
-- 🎉 Initial release
-- ✅ Support for PNG and SVG files
-- 🎮 Zoom and pan controls
-- 🎨 Auto background conversion for transparent images
-
 ## 🤝 Contributing
 
 Found a bug or have a feature request? Please open an issue on the GitHub repository.
