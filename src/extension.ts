@@ -1,251 +1,337 @@
+import { randomBytes } from 'node:crypto';
 import * as vscode from 'vscode';
-import * as path from 'path';
+import { getWebviewHtml } from './webviewHtml';
+import type { BackgroundPreference, ZoomMode } from './viewerModel';
 
-export function activate(context: vscode.ExtensionContext) {
-	console.log('Image Editor is now active');
-	const provider = new ImageEditorProvider();
-	context.subscriptions.push(vscode.window.registerCustomEditorProvider(
-		'darkThemeImageViewEditor',
-		provider,
-		{ supportsMultipleEditorsPerDocument: false }
-	));
+export const VIEW_TYPE = 'darkThemeImageViewEditor';
+
+type ViewerCommand =
+	| 'actualSize'
+	| 'copy'
+	| 'fitWidth'
+	| 'toggleBackground'
+	| 'zoomIn'
+	| 'zoomOut';
+
+interface ViewerEnvironment {
+	readonly defaultBackground: BackgroundPreference;
+	readonly defaultZoom: ZoomMode;
+	readonly themeKind: number;
 }
 
-class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.CustomDocument> {
-	async openCustomDocument(uri: vscode.Uri): Promise<vscode.CustomDocument> {
-		console.log(`Opening document: ${uri.fsPath}`);
-		return { uri, dispose: () => {} };
+interface PanelState {
+	readonly document: vscode.CustomDocument;
+	readonly panel: vscode.WebviewPanel;
+	readonly disposables: vscode.Disposable[];
+	ready: boolean;
+	lastVersion: string | undefined;
+	pendingCommands: ViewerCommand[];
+	refreshSequence: number;
+}
+
+export function activate(context: vscode.ExtensionContext): void {
+	const provider = new ImageEditorProvider(context.extensionUri);
+	context.subscriptions.push(provider);
+	context.subscriptions.push(
+		vscode.window.registerCustomEditorProvider(
+			VIEW_TYPE,
+			provider,
+			{
+				supportsMultipleEditorsPerDocument: false,
+				webviewOptions: { retainContextWhenHidden: false },
+			},
+		),
+	);
+
+	const commands: readonly [string, ViewerCommand][] = [
+		['darkThemeImageView.copyImage', 'copy'],
+		['darkThemeImageView.toggleBackground', 'toggleBackground'],
+		['darkThemeImageView.zoomIn', 'zoomIn'],
+		['darkThemeImageView.zoomOut', 'zoomOut'],
+		['darkThemeImageView.fitWidth', 'fitWidth'],
+		['darkThemeImageView.actualSize', 'actualSize'],
+	];
+	for (const [commandId, command] of commands) {
+		context.subscriptions.push(vscode.commands.registerCommand(commandId, () => {
+			provider.sendCommand(command);
+		}));
 	}
 
-	async resolveCustomEditor(document: vscode.CustomDocument, panel: vscode.WebviewPanel) {
-		const filePath = document.uri.fsPath;
-		
-		// Set up webview options
+	context.subscriptions.push(vscode.window.onDidChangeActiveColorTheme(() => {
+		provider.updateEnvironment();
+	}));
+	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
+		if (event.affectsConfiguration('darkThemeImageView.defaultBackground')
+			|| event.affectsConfiguration('darkThemeImageView.defaultZoom')) {
+			provider.updateEnvironment();
+		}
+	}));
+}
+
+export function deactivate(): void {
+	// All resources are owned by the extension context and provider disposables.
+}
+
+class ImageEditorProvider implements vscode.CustomReadonlyEditorProvider<vscode.CustomDocument>, vscode.Disposable {
+	private readonly panels = new Map<vscode.WebviewPanel, PanelState>();
+
+	public constructor(private readonly extensionUri: vscode.Uri) {}
+
+	public openCustomDocument(uri: vscode.Uri): vscode.CustomDocument {
+		return {
+			dispose: () => undefined,
+			uri,
+		};
+	}
+
+	public async resolveCustomEditor(
+		document: vscode.CustomDocument,
+		panel: vscode.WebviewPanel,
+	): Promise<void> {
+		const state: PanelState = {
+			document,
+			disposables: [],
+			panel,
+			pendingCommands: [],
+			ready: false,
+			lastVersion: undefined,
+			refreshSequence: 0,
+		};
+		this.panels.set(panel, state);
+
 		panel.webview.options = {
 			enableScripts: true,
 			localResourceRoots: [
-				vscode.Uri.file(path.dirname(filePath)),
-				vscode.Uri.file(path.join(__dirname, '..')),
-			]
+				vscode.Uri.joinPath(this.extensionUri, 'dist'),
+				vscode.Uri.joinPath(this.extensionUri, 'media'),
+				getParentUri(document.uri),
+			],
 		};
 
-		// Set up the initial HTML content
-		this.updateWebviewContent(panel, document.uri);
-
-		// Listen for when the panel is disposed
-		// This happens when the user closes the panel or when the panel is closed programmatically
+		state.disposables.push(
+			panel.webview.onDidReceiveMessage((message: unknown) => {
+				this.handleWebviewMessage(state, message);
+			}),
+			panel.onDidChangeViewState(() => {
+				if (panel.visible) {
+					void this.refreshPanel(state, false);
+				}
+			}),
+		);
 		panel.onDidDispose(() => {
-			// Clean up resources
-			console.log(`Panel for ${filePath} disposed`);
+			this.disposePanel(state);
 		});
+		this.addFileWatcher(state);
+		panel.webview.html = this.createWebviewHtml(panel.webview);
+		await this.refreshPanel(state, true);
+	}
 
-		// Listen for when the panel becomes visible
-		panel.onDidChangeViewState(e => {
-			if (e.webviewPanel.visible) {
-				// Force reload the image when the panel becomes visible again
-				this.updateWebviewContent(panel, document.uri);
+	public sendCommand(command: ViewerCommand): void {
+		const state = this.getActivePanel();
+		if (state === undefined) {
+			void vscode.window.showInformationMessage('Open an image in Dark Theme Image View first.');
+			return;
+		}
+		if (!state.ready) {
+			state.pendingCommands.push(command);
+			return;
+		}
+		void state.panel.webview.postMessage({ command, type: 'command' });
+	}
+
+	public updateEnvironment(): void {
+		for (const state of this.panels.values()) {
+			if (state.ready) {
+				void state.panel.webview.postMessage({
+					...this.getEnvironment(state.document.uri),
+					type: 'environment',
+				});
 			}
+		}
+	}
+
+	public dispose(): void {
+		for (const state of this.panels.values()) {
+			this.disposePanel(state);
+		}
+		this.panels.clear();
+	}
+
+	private createWebviewHtml(webview: vscode.Webview): string {
+		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview.js'));
+		const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'image-viewer.css'));
+		return getWebviewHtml({
+			cspSource: webview.cspSource,
+			nonce: randomBytes(16).toString('base64'),
+			scriptUri: scriptUri.toString(),
+			styleUri: styleUri.toString(),
 		});
 	}
 
-	// Helper method to update the webview content with the latest image
-	private updateWebviewContent(panel: vscode.WebviewPanel, uri: vscode.Uri) {
-		const filePath = uri.fsPath;
-		
-		// Use vscode-resource protocol to convert URI
-		const imageUri = panel.webview.asWebviewUri(vscode.Uri.file(filePath));
-		// Add version number to prevent caching
-		const versionedUri = `${imageUri}?version=${Date.now()}`;
+	private async refreshPanel(state: PanelState, force: boolean): Promise<void> {
+		if (!state.ready && !force) {
+			return;
+		}
 
-		panel.webview.html = `
-			<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<meta http-equiv="Content-Security-Policy" 
-					content="default-src 'none'; 
-							img-src vscode-resource: https: data:; 
-							script-src 'unsafe-inline';
-							style-src 'unsafe-inline';">
-				<style>
-					* {
-						margin: 0;
-						padding: 0;
-						box-sizing: border-box;
+		const sequence = ++state.refreshSequence;
+		try {
+			const stat = await vscode.workspace.fs.stat(state.document.uri);
+			if (sequence !== state.refreshSequence) {
+				return;
+			}
+
+			const version = `${stat.mtime}-${stat.size}`;
+			if (!force && state.lastVersion === version) {
+				return;
+			}
+
+			state.lastVersion = version;
+			const source = state.panel.webview
+				.asWebviewUri(state.document.uri)
+				.with({ query: `v=${encodeURIComponent(version)}` })
+				.toString();
+			void state.panel.webview.postMessage({
+				...this.getEnvironment(state.document.uri),
+				documentKey: state.document.uri.toString(),
+				source,
+				type: 'loadImage',
+			});
+		} catch (error) {
+			if (sequence !== state.refreshSequence) {
+				return;
+			}
+			state.lastVersion = undefined;
+			void state.panel.webview.postMessage({
+				message: `Unable to read ${getFileName(state.document.uri)}.`,
+				type: 'imageUnavailable',
+			});
+			console.error('Failed to refresh image document', state.document.uri.toString(), error);
+		}
+	}
+
+	private handleWebviewMessage(state: PanelState, message: unknown): void {
+		if (!isRecord(message) || typeof message.type !== 'string') {
+			return;
+		}
+
+		switch (message.type) {
+			case 'ready':
+				state.ready = true;
+				for (const command of state.pendingCommands.splice(0)) {
+					void state.panel.webview.postMessage({ command, type: 'command' });
+				}
+				void this.refreshPanel(state, true);
+				break;
+			case 'copyError':
+				if (typeof message.message === 'string') {
+					void vscode.window.showWarningMessage(`Could not copy image: ${message.message}`);
+				}
+				break;
+			case 'loadError':
+				if (typeof message.message === 'string') {
+					void vscode.window.showErrorMessage(message.message);
+				}
+				break;
+			case 'copySucceeded':
+				break;
+			default:
+				break;
+		}
+	}
+
+	private addFileWatcher(state: PanelState): void {
+		try {
+			const watcher = vscode.workspace.createFileSystemWatcher(
+				new vscode.RelativePattern(getParentUri(state.document.uri), '*'),
+			);
+			const isDocument = (uri: vscode.Uri): boolean => uri.toString() === state.document.uri.toString();
+			state.disposables.push(
+				watcher,
+				watcher.onDidChange((uri) => {
+					if (isDocument(uri)) {
+						void this.refreshPanel(state, true);
 					}
-					
-					html, body {
-						width: 100%;
-						height: 100vh;
-						overflow: hidden;
+				}),
+				watcher.onDidCreate((uri) => {
+					if (isDocument(uri)) {
+						void this.refreshPanel(state, true);
 					}
-					
-					body {
-						display: flex;
-						justify-content: center;
-						align-items: center;
-						background-color: var(--vscode-editor-background);
+				}),
+				watcher.onDidDelete((uri) => {
+					if (isDocument(uri)) {
+						state.lastVersion = undefined;
+						void state.panel.webview.postMessage({
+							message: `${getFileName(uri)} is no longer available.`,
+							type: 'imageUnavailable',
+						});
 					}
-					
-					.container {
-						position: absolute;
-						top: 50%;
-						left: 50%;
-						transform: translate(-50%, -50%);
-						width: 100%;
-						height: 100%;
-						display: flex;
-						justify-content: center;
-						align-items: center;
-						overflow: hidden;
-					}
-					
-					canvas {
-						max-width: 100%;
-						max-height: 100%;
-						object-fit: contain;
-						display: block;
-						margin: auto;
-						transform-origin: center center;
-					}
+				}),
+			);
+		} catch (error) {
+			// Some virtual file systems do not expose watch events. Visibility
+			// changes still trigger a stat-based refresh, so viewing remains usable.
+			console.warn('File watching is unavailable for', state.document.uri.toString(), error);
+		}
+	}
 
-					.scale-to-fit {
-						width: auto;
-						height: auto;
-						max-width: 90%;
-						max-height: 90%;
-					}
-				</style>
-			</head>
-			<body>
-				<div class="container">
-					<canvas id="canvas"></canvas>
-				</div>
-				<script>
-					const vscode = acquireVsCodeApi();
-					const canvas = document.getElementById('canvas');
-					const ctx = canvas.getContext('2d');
-					let img = new Image();
-					
-					window.addEventListener('message', event => {
-						const message = event.data;
-						console.log('Received message:', message);
-						switch (message.command) {
-							case 'loadImage':
-								loadImage(message.filePath, message.themeKind);
-								break;
-						}
-					});
+	private getActivePanel(): PanelState | undefined {
+		for (const state of this.panels.values()) {
+			if (state.panel.active && state.panel.visible) {
+				return state;
+			}
+		}
+		for (const state of this.panels.values()) {
+			if (state.panel.visible) {
+				return state;
+			}
+		}
+		return undefined;
+	}
 
-					// Add zoom state variables
-					let scale = 1;
-					let isDragging = false;
-					let startX, startY, translateX = 0, translateY = 0;
+	private getEnvironment(uri: vscode.Uri): ViewerEnvironment {
+		const configuration = vscode.workspace.getConfiguration('darkThemeImageView', uri);
+		const defaultBackground = configuration.get<BackgroundPreference>('defaultBackground', 'auto');
+		const defaultZoom = configuration.get<ZoomMode>('defaultZoom', 'fitWidth');
+		return {
+			defaultBackground: isBackgroundPreference(defaultBackground) ? defaultBackground : 'auto',
+			defaultZoom: isZoomMode(defaultZoom) ? defaultZoom : 'fitWidth',
+			themeKind: vscode.window.activeColorTheme.kind,
+		};
+	}
 
-					// Add mouse wheel zoom
-					canvas.addEventListener('wheel', (e) => {
-						if (e.ctrlKey || e.metaKey) {
-							e.preventDefault();
-							const delta = e.deltaY;
-							const scaleChange = delta > 0 ? 0.9 : 1.1;
-							scale = Math.min(Math.max(0.1, scale * scaleChange), 5);
-							updateCanvasTransform();
-						}
-					}, { passive: false });
-
-					// Add drag functionality
-					canvas.addEventListener('mousedown', (e) => {
-						isDragging = true;
-						startX = e.clientX - translateX;
-						startY = e.clientY - translateY;
-						canvas.style.cursor = 'grabbing';
-					});
-
-					window.addEventListener('mousemove', (e) => {
-						if (isDragging) {
-							translateX = e.clientX - startX;
-							translateY = e.clientY - startY;
-							updateCanvasTransform();
-						}
-					});
-
-					window.addEventListener('mouseup', () => {
-						isDragging = false;
-						canvas.style.cursor = 'grab';
-					});
-
-					// Update canvas transform
-					function updateCanvasTransform() {
-						canvas.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px) scale(' + scale + ')';
-					}
-
-					function loadImage(filePath, themeKind) {
-						console.log('Loading image:', filePath);
-						console.log('Theme kind:', themeKind);
-						
-						// Create a new Image object each time to avoid caching issues
-						img = new Image();
-						img.src = filePath;
-						img.onload = () => {
-							console.log('Image loaded, dimensions:', img.width, 'x', img.height);
-							canvas.width = img.width;
-							canvas.height = img.height;
-
-							if (themeKind === 2 && isTransparent(img)) { // 2 represents Dark theme
-								console.log('Applying white background for transparent image in dark theme');
-								ctx.fillStyle = 'white';
-								ctx.fillRect(0, 0, canvas.width, canvas.height);
-							}
-
-							ctx.drawImage(img, 0, 0);
-
-							// Reset zoom and position
-							scale = 1;
-							translateX = 0;
-							translateY = 0;
-							updateCanvasTransform();
-							canvas.style.cursor = 'grab';
-						};
-						
-						img.onerror = (err) => {
-							console.error('Error loading image:', err);
-							vscode.postMessage({
-								command: 'error',
-								message: 'Failed to load image'
-							});
-						};
-					}
-
-					function isTransparent(image) {
-						const canvasTest = document.createElement('canvas');
-						canvasTest.width = image.width;
-						canvasTest.height = image.height;
-						const ctxTest = canvasTest.getContext('2d');
-						ctxTest.drawImage(image, 0, 0);
-						
-						const imageData = ctxTest.getImageData(0, 0, canvasTest.width, canvasTest.height);
-						const data = imageData.data;
-						
-						for (let i = 3; i < data.length; i += 4) {
-							if (data[i] < 255) {
-								return true;
-							}
-						}
-						return false;
-					}
-				</script>
-			</body>
-			</html>
-		`;
-
-		// Send message with versioned URI
-		panel.webview.postMessage({
-			command: 'loadImage',
-			filePath: versionedUri,
-			themeKind: vscode.window.activeColorTheme.kind
-		});
+	private disposePanel(state: PanelState): void {
+		for (const disposable of state.disposables) {
+			disposable.dispose();
+		}
+		this.panels.delete(state.panel);
 	}
 }
 
-export function deactivate() {}
+function getParentUri(uri: vscode.Uri): vscode.Uri {
+	const slash = uri.path.lastIndexOf('/');
+	return uri.with({
+		fragment: '',
+		path: slash > 0 ? uri.path.slice(0, slash) : '/',
+		query: '',
+	});
+}
+
+function getFileName(uri: vscode.Uri): string {
+	const slash = uri.path.lastIndexOf('/');
+	return slash >= 0 ? uri.path.slice(slash + 1) : uri.path;
+}
+
+function isBackgroundPreference(value: unknown): value is BackgroundPreference {
+	return value === 'auto'
+		|| value === 'white'
+		|| value === 'checkerboard'
+		|| value === 'editor';
+}
+
+function isZoomMode(value: unknown): value is ZoomMode {
+	return value === 'fitWidth' || value === 'fit' || value === 'actualSize';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
