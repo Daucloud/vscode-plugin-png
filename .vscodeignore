@@ -1,18 +1,16 @@
 .vscode/**
+.github/**
 .vscode-test/**
+.test-dist/**
+out/**
 src/**
-out/test/**
 test/**
+scripts/**
 .gitignore
-.yarnrc
-**/tsconfig.json
-**/.eslintrc.json
+package-lock.json
+eslint.config.mjs
+tsconfig.json
 **/*.map
 **/*.ts
-
-# 保留必要的 node_modules
 node_modules/**
-!node_modules/sharp/**
-!node_modules/sharp/build/**
-!node_modules/sharp/vendor/**
-!node_modules/sharp/lib/**
+images/icon.svg

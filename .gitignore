@@ -2,6 +2,7 @@ out
 dist
 node_modules
 .vscode-test/
+.test-dist/
 *.vsix
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,node

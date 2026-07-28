@@ -5,6 +5,29 @@ All notable changes to the "Dark Theme Image View" extension will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-07-28
+
+### Added
+
+- Added vertical scrolling for long images and Shift + mouse wheel horizontal scrolling.
+- Added white, checkerboard, and editor background modes with the `B` shortcut and Command Palette command.
+- Added PNG clipboard copy through the Copy button, Ctrl/Cmd+C, editor title action, and webview context menu.
+- Added configurable initial background and zoom preferences.
+
+### Changed
+
+- Rebuilt the viewer around an image surface instead of a full-size canvas, avoiding an unnecessary pixel scan and reducing memory use for large images.
+- Added cursor-anchored zoom, persisted view state, file change refreshes, theme refreshes, keyboard navigation, and accessible toolbar controls.
+- Replaced the inconsistent TypeScript/esbuild setup with a single production bundle under `dist/` and a CSP-protected webview bundle.
+- Removed the unused `sharp` runtime dependency and VS Code download-based test runner.
+- Added fast Node unit tests for viewer math, manifest contributions, and webview security policy.
+- Added continuous integration for type checking, linting, tests, and production builds.
+
+### Fixed
+
+- Fixed long images being clipped because the viewer always hid overflow.
+- Fixed the lack of an image clipboard path when using the custom preview.
+
 ## [1.0.2] - 2025-06-24
 
 ### Fixed
