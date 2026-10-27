@@ -5,6 +5,12 @@ All notable changes to the "Dark Theme Image View" extension will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-10-27
+
+### Fixed
+
+- Fixed image viewer shortcuts intercepting keyboard input in Search, the terminal, and other VS Code views while an image tab was active ([#6](https://github.com/Daucloud/vscode-plugin-png/issues/6)). Shortcuts are now handled only inside the focused image webview.
+
 ## [1.1.0] - 2026-07-28
 
 ### Added

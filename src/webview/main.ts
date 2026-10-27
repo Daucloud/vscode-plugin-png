@@ -212,6 +212,7 @@ image.addEventListener('lostpointercapture', () => {
 	image.classList.remove('dragging');
 });
 
+// Keep shortcuts inside the webview so other VS Code views retain their keyboard input.
 document.addEventListener('keydown', (event) => {
 	const target = event.target;
 	if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {

@@ -38,6 +38,9 @@ A focused Visual Studio Code image viewer for PNG and SVG files, with sensible d
    - ↕️ Scroll normally for vertical movement, or hold Shift for horizontal movement
    - 📋 Press Ctrl/Cmd+C or click Copy to put a PNG on the system clipboard
    - 🌓 Press B or click Background to cycle the background
+
+   Keyboard shortcuts apply while the image viewer has focus.
+
 3. To switch to a different editor, right-click the file in the Explorer and select "Open With..." from the context menu.
 
 ## 📋 Requirements

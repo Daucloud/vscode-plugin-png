@@ -7,7 +7,7 @@ interface ExtensionManifest {
 	readonly dependencies?: Record<string, string>;
 	readonly contributes: {
 		readonly commands: readonly { readonly command: string }[];
-		readonly keybindings: readonly { readonly command: string; readonly when: string }[];
+		readonly keybindings?: readonly { readonly command: string; readonly when: string }[];
 	};
 }
 
@@ -18,12 +18,15 @@ void test('manifest points at the bundled extension and has no runtime dependenc
 	assert.deepEqual(manifest.dependencies, undefined);
 });
 
-void test('issue-related viewer commands are contributed and scoped to the custom editor', () => {
+void test('issue-related viewer commands are contributed', () => {
 	const commands = new Set(manifest.contributes.commands.map(({ command }) => command));
 	assert.ok(commands.has('darkThemeImageView.copyImage'));
 	assert.ok(commands.has('darkThemeImageView.toggleBackground'));
+});
 
-	for (const keybinding of manifest.contributes.keybindings) {
-		assert.equal(keybinding.when, 'activeCustomEditorId == darkThemeImageViewEditor');
-	}
+void test('viewer shortcuts do not register workbench keybindings that intercept other views (issue #6)', () => {
+	// The webview handles shortcuts locally; an active image tab does not imply keyboard focus.
+	const viewerKeybindings = (manifest.contributes.keybindings ?? [])
+		.filter(({ command }) => command.startsWith('darkThemeImageView.'));
+	assert.deepEqual(viewerKeybindings, []);
 });

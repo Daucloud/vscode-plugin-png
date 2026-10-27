@@ -2,7 +2,7 @@
   "name": "dark-theme-image-view",
   "displayName": "Dark Theme Image View",
   "description": "A focused PNG and SVG viewer with scrolling, zoom, background controls, and clipboard support",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "MIT",
   "keywords": [
     "image",
@@ -96,43 +96,6 @@
         "command": "darkThemeImageView.actualSize",
         "title": "Show Image at Actual Size",
         "category": "Dark Theme Image View"
-      }
-    ],
-    "keybindings": [
-      {
-        "command": "darkThemeImageView.copyImage",
-        "key": "ctrl+c",
-        "mac": "cmd+c",
-        "when": "activeCustomEditorId == darkThemeImageViewEditor"
-      },
-      {
-        "command": "darkThemeImageView.toggleBackground",
-        "key": "b",
-        "when": "activeCustomEditorId == darkThemeImageViewEditor"
-      },
-      {
-        "command": "darkThemeImageView.zoomIn",
-        "key": "ctrl+=",
-        "mac": "cmd+=",
-        "when": "activeCustomEditorId == darkThemeImageViewEditor"
-      },
-      {
-        "command": "darkThemeImageView.zoomOut",
-        "key": "ctrl+-",
-        "mac": "cmd+-",
-        "when": "activeCustomEditorId == darkThemeImageViewEditor"
-      },
-      {
-        "command": "darkThemeImageView.fitWidth",
-        "key": "ctrl+0",
-        "mac": "cmd+0",
-        "when": "activeCustomEditorId == darkThemeImageViewEditor"
-      },
-      {
-        "command": "darkThemeImageView.actualSize",
-        "key": "ctrl+1",
-        "mac": "cmd+1",
-        "when": "activeCustomEditorId == darkThemeImageViewEditor"
       }
     ],
     "menus": {
